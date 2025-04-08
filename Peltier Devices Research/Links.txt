@@ -1,0 +1,9 @@
+https://en.wikipedia.org/wiki/Thermoelectric_cooling - overview
+https://robocraze.com/blogs/post/peltier-cooler - history
+https://sciencestruck.com/peltier-effect-explained - 
+https://www.instructables.com/How-to-Set-Up-a-Peltier-Module/
+https://docs.cirkitdesigner.com/component/1a3c1040-3306-4aa7-bc9d-f2c5a42411b0/peltier-module
+https://www.electronicspecifier.com/products/test-and-measurement/how-to-achieve-temperature-control-with-a-peltier-module-system
+- next link here
+
+Generative AI conversation: https://copilot.microsoft.com/shares/SnhwTBnUzdvZZdpRjGLka
