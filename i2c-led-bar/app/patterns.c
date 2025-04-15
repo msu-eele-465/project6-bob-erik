@@ -1,4 +1,5 @@
 #include <msp430.h>
+#include <math.h>
 #include "patterns.h"
 
 #define LED_PORT_P1 P1OUT
@@ -8,25 +9,7 @@
 
 static int phaseTime = 25000;
 static unsigned char currentPattern = 0;
-
-static const unsigned char pattern_toggle[2] = {
-    0b10101010,  // Step 0
-    0b01010101   // Step 1
-};
-
-static const unsigned char pattern_in_and_out[6] = {
-    0b00011000,  // Step 0
-    0b00100100,  // Step 1
-    0b01000010,  // Step 2
-    0b10000001,  // Step 3
-    0b01000010,  // Step 4
-    0b00100100   // Step 5
-};
-
 static const unsigned char pattern_static = 0b10101010;
-
-volatile unsigned char heating_index;
-volatile unsigned char cooling_index;
 
 void init_LED_Patterns(void) {
     LED_DIR_P1 |= BIT0 | BIT1 | BIT4 | BIT5 | BIT6 | BIT7;
@@ -65,15 +48,15 @@ void update_LED(void) {
         case 1: // heating
             heating_index = heating_index << 1;
             heating_index |= BIT0;
-            outputToLeds(cooling_index); 
-            heating_index &= ~(cooling_index >> 7) * 0xFF;
+            outputToLEDs(heating_index); 
+            heating_index &= ~((heating_index >> 7) * 0xFF);
             break;
 
         case 2: // cooling
             cooling_index = cooling_index >> 1;
             cooling_index |= BIT7;
-            outputToLeds(cooling_index); 
-            cooling_index &= ~(cooling_index & ~(0x11111110)) * 0xFF;
+            outputToLEDs(cooling_index); 
+            cooling_index &= ~((cooling_index & ~(0b11111110)) * 0xFF);
             break;
 
         /*case 3:
@@ -103,15 +86,3 @@ void outputToLEDs(unsigned char val) {
                   ((val & BIT2) ? BIT6 : 0) |
                   ((val & BIT3) ? BIT7 : 0);
 }
-// static unsigned char cooling_index;
-// cooling_index = cooling_index >> 1;
-// cooling_index |= BIT7;
-// outputToLeds(cooling_index); 
-// outputToLeds &= ~(BIT);
-// cooling_index &= ~(cooling_index & ~(0x11111110)) * 0xFF;
-
-// static unsigned char heating_index;
-//heating_index = heating << 1;
-// heating_index |= BIT0;
-// outputToLeds(cooling_index); 
-// heating_index &= ~(cooling_index >> 7) * 0xFF;

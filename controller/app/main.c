@@ -27,6 +27,7 @@ volatile unsigned int send_temp_dec = 0;
 
 volatile unsigned int time_operating = 0;
 
+volatile bool send_time_op = false;
 volatile bool is_read = false;
 volatile bool send_next_temp = false;
 volatile bool record_next_temp = false; // Set this varibale every .5 seconds when the system is not locked.
@@ -114,6 +115,7 @@ int main(void)
         // code to set initial temp-sense window
         time_operating = 0;
         bool input_change = true;
+        send_time_op = true;
         while (lastInput != 'D') {
             Data_Cnt = 0;     
             if (lastInput == 'A' && input_change) {
@@ -244,6 +246,7 @@ int main(void)
         }
         send_next_temp = false;
         is_matching = false;
+        send_time_op = false;
         time_operating = 0;
         next_window = '3';
         P5OUT &= ~(BIT1 | BIT2); // turn peltier off
@@ -337,7 +340,7 @@ __interrupt void ADC_ISR(void){
 #pragma vector = TIMER2_B0_VECTOR               //time B0 ISR
 __interrupt void TIMERB2_ISR(void) {
     record_next_temp = true;                              //toggles P1.0 LED
-    if (update_time) {
+    if (update_time && send_time_op) {
         time_operating += 1;
         Send_Time_Operating(time_operating % 256);
         update_time = false;

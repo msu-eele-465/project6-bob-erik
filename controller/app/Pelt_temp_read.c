@@ -18,6 +18,8 @@ void get_pelt_temp(int window) {
     UCB0TBCNT = 0x03;
    
     UCB0CTLW0 |= UCTXSTT; // generate start condition
+    while(UCB0IFG & UCSTPIFG == 0) {}
+    UCB0IFG &= ~UCSTPIFG; 
 
     int tmp_msb = dataRead[1];
     int tmp_lsb = dataRead[2];

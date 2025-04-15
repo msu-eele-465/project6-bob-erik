@@ -6,9 +6,8 @@
 volatile unsigned char dataReceived[2]; // buffer for received I2C data
 volatile int dataRdy = 0;
 
-unsigned char currentUpCounter = 0;
-unsigned char toggleState = 0;
-unsigned char patternStep = 0;
+volatile unsigned char heating_index = 0;
+volatile unsigned char cooling_index = 0;
 
 void init_I2C_Target(void) {
     UCB0CTLW0 = UCSWRST;                // put eUSCI_B0 into reset state

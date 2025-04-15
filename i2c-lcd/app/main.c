@@ -105,9 +105,9 @@ int main(void)
                 else if (dataint == 7) {
                     writeMessage("fill left");
                 }*/
-                else if (dataint == 4) {
+                /*else if (dataint == 4) {
                     writeMessage("set");
-                }
+                }*/
                 /*else if (dataint == 9) {
                     writeMessage("Set Pattern");
                 }*/
@@ -158,12 +158,14 @@ int main(void)
             else if (varint == 7) { /// write time
                 goToDDRLCD(0x42);
                 unsigned char hunds = (dataint/100) + '0';
-                unsigned char tens = (dataint/100) + '0';
-                unsigned char ones = (dataint/100) + '0';
+                unsigned char tens = (dataint/10)%10 + '0';
+                unsigned char ones = (dataint/1)%10 + '0';
                 writeChar(hunds);
                 writeChar(tens);
                 writeChar(ones);
                 writeChar('s');
+                writeChar(' ');
+                writeChar(' ');
             }
             else {
                 // do something or nothing in case of invalid send
