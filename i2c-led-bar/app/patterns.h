@@ -8,6 +8,8 @@ void init_LED_Patterns(void);
 void set_LED_Pattern(int pattern);
 void set_Phase_Time(int time);
 void update_LED(void);
+extern volatile unsigned char heating_index;
+extern volatile unsigned char cooling_index;
 
 // NEW: Getter for current pattern
 unsigned char get_Current_Pattern(void);

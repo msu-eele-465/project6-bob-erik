@@ -25,9 +25,8 @@ static const unsigned char pattern_in_and_out[6] = {
 
 static const unsigned char pattern_static = 0b10101010;
 
-static unsigned char toggle_index = 0;
-static unsigned char inout_index = 0;
-static unsigned char up_counter = 0;
+volatile unsigned char heating_index;
+volatile unsigned char cooling_index;
 
 void init_LED_Patterns(void) {
     LED_DIR_P1 |= BIT0 | BIT1 | BIT4 | BIT5 | BIT6 | BIT7;
@@ -38,9 +37,8 @@ void init_LED_Patterns(void) {
 
 void set_LED_Pattern(int pattern) {
     currentPattern = pattern;
-    toggle_index = 0;
-    inout_index = 0;
-    up_counter = 0;
+    cooling_index = 0;
+    heating_index = 0;
 
     if (pattern == 0) {
         outputToLEDs(pattern_static);
@@ -64,21 +62,25 @@ void update_LED(void) {
             outputToLEDs(pattern_static);
             break;
 
-        case 1:
-            outputToLEDs(pattern_toggle[toggle_index]);
-            toggle_index = (toggle_index + 1) % 2;
+        case 1: // heating
+            heating_index = heating_index << 1;
+            heating_index |= BIT0;
+            outputToLeds(cooling_index); 
+            heating_index &= ~(cooling_index >> 7) * 0xFF;
             break;
 
-        case 2:
-            outputToLEDs(up_counter);
-            up_counter++;
+        case 2: // cooling
+            cooling_index = cooling_index >> 1;
+            cooling_index |= BIT7;
+            outputToLeds(cooling_index); 
+            cooling_index &= ~(cooling_index & ~(0x11111110)) * 0xFF;
             break;
 
-        case 3:
+        /*case 3:
             outputToLEDs(pattern_in_and_out[inout_index]);
             inout_index = (inout_index + 1) % 6;
             break;
-
+        */
         default:
             outputToLEDs(0x00);
             break;
@@ -101,3 +103,15 @@ void outputToLEDs(unsigned char val) {
                   ((val & BIT2) ? BIT6 : 0) |
                   ((val & BIT3) ? BIT7 : 0);
 }
+// static unsigned char cooling_index;
+// cooling_index = cooling_index >> 1;
+// cooling_index |= BIT7;
+// outputToLeds(cooling_index); 
+// outputToLeds &= ~(BIT);
+// cooling_index &= ~(cooling_index & ~(0x11111110)) * 0xFF;
+
+// static unsigned char heating_index;
+//heating_index = heating << 1;
+// heating_index |= BIT0;
+// outputToLeds(cooling_index); 
+// heating_index &= ~(cooling_index >> 7) * 0xFF;

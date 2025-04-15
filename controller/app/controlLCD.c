@@ -8,6 +8,8 @@
 
 void send_Latest_Input(char last_input) {
     Data_Cnt = 0;
+    UCB0CTLW0 |= UCTR; 
+    is_read = false;
     __delay_cycles(2000);
     UCB0I2CSA = 0x0047; // choose slave address
     UCB0TBCNT = 0x02; // always send 2 bytes
@@ -70,6 +72,8 @@ void send_Latest_Input(char last_input) {
 }
 void send_Pattern_Name(int Pattern) {
     Data_Cnt = 0;
+    is_read = false;
+    UCB0CTLW0 |= UCTR; 
     __delay_cycles(4000);
     UCB0I2CSA = 0x0047; // choose slave address
     UCB0TBCNT = 0x02;
@@ -81,6 +85,8 @@ void send_Pattern_Name(int Pattern) {
 }   
 void send_Blinking_toggle(int Toggle) {
     Data_Cnt = 0;
+    is_read = false;
+    UCB0CTLW0 |= UCTR; 
     __delay_cycles(2000);
     UCB0I2CSA = 0x0047; // choose slave address
     UCB0TBCNT = 0x02;
@@ -90,13 +96,54 @@ void send_Blinking_toggle(int Toggle) {
     return;
 
 }
-void send_Temp_LCD(int new_temp) {
+void A_send_Temp_LCD(int new_temp) {
     Data_Cnt = 0;
+    is_read = false;
+    UCB0CTLW0 |= UCTR; 
     __delay_cycles(4000);
     UCB0I2CSA = 0x0047; // choose slave address
     UCB0TBCNT = 0x02;
     dataSend[0] = 4; // this will select the pattern selection variable on the slave
     dataSend[1] = new_temp; // send divided time between phase changes to slave, to be expanded
+                                   // again and set to count-up-to variable
+    UCB0CTLW0 |= UCTXSTT; // generate start condition
+    return;
+}
+void send_Temp_LCD_Dec(int new_temp) {
+    Data_Cnt = 0;
+    is_read = false;
+    UCB0CTLW0 |= UCTR; 
+    __delay_cycles(4000);
+    UCB0I2CSA = 0x0047; // choose slave address
+    UCB0TBCNT = 0x02;
+    dataSend[0] = 6; // this will select the pattern selection variable on the slave
+    dataSend[1] = new_temp; // send divided time between phase changes to slave, to be expanded
+                                   // again and set to count-up-to variable
+    UCB0CTLW0 |= UCTXSTT; // generate start condition
+    return;
+}
+void P_send_Temp_LCD(int new_temp) {
+    Data_Cnt = 0;
+    is_read = false;
+    __delay_cycles(4000);
+    UCB0CTLW0 |= UCTR; 
+    UCB0I2CSA = 0x0047; // choose slave address
+    UCB0TBCNT = 0x02;
+    dataSend[0] = 5; // this will select the pattern selection variable on the slave
+    dataSend[1] = new_temp; // send divided time between phase changes to slave, to be expanded
+                                   // again and set to count-up-to variable
+    UCB0CTLW0 |= UCTXSTT; // generate start condition
+    return;
+}
+void Send_Time_Operating(int new_time) {
+    Data_Cnt = 0;
+    is_read = false;
+    UCB0CTLW0 |= UCTR; 
+    __delay_cycles(4000);
+    UCB0I2CSA = 0x0047; // choose slave address
+    UCB0TBCNT = 0x02;
+    dataSend[0] = 7; // this will select the pattern selection variable on the slave
+    dataSend[1] = new_time; // send divided time between phase changes to slave, to be expanded
                                    // again and set to count-up-to variable
     UCB0CTLW0 |= UCTXSTT; // generate start condition
     return;

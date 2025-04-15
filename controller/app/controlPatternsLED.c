@@ -9,6 +9,8 @@
 
 void send_LED_Phase_Delay(long int timerCount) {
     Data_Cnt = 0;
+    UCB0CTLW0 |= UCTR; 
+    is_read = false;
     __delay_cycles(2000);
     UCB0I2CSA = 0x0045; // choose slave address
     UCB0TBCNT = 0x02; // always send 2 bytes
@@ -21,6 +23,8 @@ void send_LED_Phase_Delay(long int timerCount) {
 }
 void send_LED_Timer_Set(void) {
     Data_Cnt = 0;
+    UCB0CTLW0 |= UCTR; 
+    is_read = false;
     __delay_cycles(2000);
     UCB0I2CSA = 0x0045; // choose slave address
     UCB0TBCNT = 0x02;
@@ -32,6 +36,8 @@ void send_LED_Timer_Set(void) {
 }   
 void send_LED_Timer_Pause(void) {
     Data_Cnt = 0;
+    UCB0CTLW0 |= UCTR; 
+    is_read = false;
     __delay_cycles(2000);
     UCB0I2CSA = 0x0045; // choose slave address
     UCB0TBCNT = 0x02;
@@ -43,6 +49,8 @@ void send_LED_Timer_Pause(void) {
 }
 void send_LED_Pattern(int chosenPattern) {
     Data_Cnt = 0;
+    UCB0CTLW0 |= UCTR; 
+    is_read = false;
     __delay_cycles(2000);
     UCB0I2CSA = 0x0045; // choose slave address
     UCB0TBCNT = 0x02;

@@ -16,7 +16,6 @@ int ave_cnt = 9; // same as above
 //int ave_cnt = [20]; // for double digit window size
 float total = 0;
 int i;
-int data_cnt;
 
 void config_ADC() {
         P5SEL1 |= BIT0; // configure P5.0 for A8
@@ -42,7 +41,6 @@ void config_ADC() {
 
 void get_temp(int window) {  // cur_temp, ADC_Value
    
-    data_cnt = 0;
     //ADC_Start = 0; // resets
     ADCIE |= ADCIE0;
     ADCCTL0 |= ADCENC | ADCSC; // starts adc

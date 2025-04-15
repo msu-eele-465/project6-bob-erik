@@ -74,8 +74,7 @@ int main(void)
                 dataRdy2 = 0;
             }
             if(varint == 1) {
-            goToDDRLCD(0x4D); // go to 3rd to last character of second row
-            writeMessage("N=");
+            goToDDRLCD(0x40); // go to 3rd to last character of second row
             writeChar('0' + dataint); // write our window size
             }
             else if (varint == 2) { // dataint is pattern name integer
@@ -83,16 +82,16 @@ int main(void)
                 writeMessage("                ");
                 goToDDRLCD(0x00);
                 if (dataint == 0) {
-                    writeMessage("static");
+                    writeMessage("heat");
                 }
                 else if (dataint == 1) {
-                    writeMessage("toggle");
+                    writeMessage("cool");
                 }
                 else if (dataint == 2) {
-                    writeMessage("up counter");
+                    writeMessage("off");
                 }
                 else if (dataint == 3) {
-                    writeMessage("in and out");
+                    writeMessage("match");
                 }
                 /*else if (dataint == 4) {
                     writeMessage("down counter");
@@ -106,12 +105,12 @@ int main(void)
                 else if (dataint == 7) {
                     writeMessage("fill left");
                 }*/
-                else if (dataint == 8) {
-                    writeMessage("Set Window Size");
+                else if (dataint == 4) {
+                    writeMessage("set");
                 }
-                else if (dataint == 9) {
+                /*else if (dataint == 9) {
                     writeMessage("Set Pattern");
-                }
+                }*/
             }
             else if (varint == 3) { // dataint is blinking toggle state
                 // if 0, turn off LCD
@@ -132,22 +131,39 @@ int main(void)
                 }
             }
             else if (varint == 4) { // dataint is pattern speed
-                goToDDRLCD(0x40); // go to first character of first row
-                writeMessage("T=");
-                unsigned char tens = (dataint/100 + 1) + '0'; // add 10
-                int ones_int = ((dataint%100) / 10) + 5;
-                unsigned char ones = ones_int % 10 + '0'; // add 5
-                tens += ones_int/10;
+                goToDDRLCD(0x08); // go to first character of first row
+                writeMessage("A:");
+                unsigned char tens = (dataint/10) + '0';
+                int ones_int = (dataint%10);
+                unsigned char ones = ones_int % 10 + '0'; 
                 writeChar(tens);
                 writeChar(ones);
+            }
+            else if (varint == 5) {
+                goToDDRLCD(0x48); // go to first character of first row
+                writeMessage("P:");
+                unsigned char tens = (dataint/10) + '0'; 
+                int ones_int = (dataint%10);
+                unsigned char ones = ones_int % 10 + '0'; 
+                writeChar(tens);
+                writeChar(ones);
+            }
+            else if (varint == 6) {
                 writeChar('.');
                 unsigned char dec = (dataint % 10) + '0';
                 writeChar(dec);
                 writeChar(11011111);
                 writeChar('C');
             }
-            else if (varint == 5) {
-
+            else if (varint == 7) { /// write time
+                goToDDRLCD(0x42);
+                unsigned char hunds = (dataint/100) + '0';
+                unsigned char tens = (dataint/100) + '0';
+                unsigned char ones = (dataint/100) + '0';
+                writeChar(hunds);
+                writeChar(tens);
+                writeChar(ones);
+                writeChar('s');
             }
             else {
                 // do something or nothing in case of invalid send

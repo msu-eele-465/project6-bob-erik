@@ -7,6 +7,8 @@
 #include "controlLCD.h"
 #include "keypad.h"
 #include "RGB.h"
+#include "msp430fr2355.h"
+#include "pelt_temp_read.h"
 #include "shared.h"
 
 #define RED_LED   BIT4 
@@ -18,13 +20,20 @@ volatile unsigned int red_counter = 0;
 volatile unsigned int green_counter = 0;
 volatile unsigned int blue_counter = 0;
 
-volatile float cur_temp = 0;  // this is what you update to thedegrees celcius
+volatile int pelt_temp = 0; // whether this actually ever becomes a float remains to be seen. My gut tells me no, though.
+volatile float cur_temp = 0;  // this is what you update to the degrees celcius
 volatile unsigned int send_temp = 0;
+volatile unsigned int send_temp_dec = 0;
 
+volatile unsigned int time_operating = 0;
+
+volatile bool is_read = false;
 volatile bool send_next_temp = false;
 volatile bool record_next_temp = false; // Set this varibale every .5 seconds when the system is not locked.
 volatile char next_window = '3';
+volatile char confirm_window = '3';
 
+volatile unsigned int dataRead[3] = {0, 0};
 volatile unsigned int dataSend[2] = {69, 43};
 volatile unsigned int Data_Cnt = 0;
 // will also have record_next_temp. Send_next_temp only happens after record_next_temp 
@@ -33,6 +42,9 @@ volatile unsigned int limit_reached = 0;
 volatile unsigned int pwms = 0;
 
 volatile system_states state = LOCKED;
+
+volatile bool is_matching = false;
+volatile bool update_time = false;
 
 int main(void)
 {
@@ -62,7 +74,8 @@ int main(void)
     TB2CCR0 = 16000;                            //sets Timer B0 to 1 second (32.768 kHz)
     TB2CTL |= TBSSEL_1 | ID_0 | MC__UP | TBCLR;    //ACLK, No divider, Up mode, Clear timer
 
-
+    P5DIR |= BIT1 | BIT2;
+    P5OUT &= ~(BIT1 | BIT2); // peltier heating/cooling default off
     // Disable the GPIO power-on default high-impedance mode to activate
     // previously configure port settings
 
@@ -87,91 +100,31 @@ int main(void)
         state = UNLOCKED;
         update_color(state);
         char lastInput = 'X';
-        while (lastInput != 'A' && lastInput != 'B' && lastInput != 'D') {
+        send_LED_Pattern(0);
+        while (lastInput != 'A' && lastInput != 'B' && lastInput != 'D' && lastInput != 'C' && !(lastInput < ':')) {
             lastInput = readInput(); // stays here until user chooses a pattern, or chooses to lock the system
             //send_Latest_Input(lastInput);
         }
         int rows;
-        long int phaseTime = 25000; // 1 second
+        long int phaseTime = 12500; // 1 second
         send_LED_Phase_Delay(phaseTime);
         //send_Pattern_Speed(phaseTime); 
         send_LED_Timer_Set(); // enable LED-pattern-trigger timer interrupt here
         send_Latest_Input(next_window);
         // code to set initial temp-sense window
+        time_operating = 0;
         bool input_change = true;
-        int Action_Sel = 0;
         while (lastInput != 'D') {
-            Data_Cnt = 0;
-            if (lastInput == '1' && input_change && Action_Sel == 1) {
-                send_LED_Pattern(1);
-                send_Pattern_Name(1);
+            Data_Cnt = 0;     
+            if (lastInput == 'A' && input_change) {
                 input_change = false;
-                Action_Sel = 0;
-                rows = P3IN; // constantly listen for an input
-                rows &= 0b11110000; // clear any values on lower 4 bits
-                if (rows != 0b00000000) {
-                    lastInput = readInput();
-                    //send_Latest_Input(lastInput);
-                    input_change = true;
-                }
-            }     
-            else if (lastInput == 'A' && input_change && Action_Sel == 0) {
-                Action_Sel = 1; // Select LED Pattern
-                input_change = false;
-                send_Pattern_Name(9);
-                rows = P3IN; // constantly listen for an input
-                rows &= 0b11110000; // clear any values on lower 4 bits
-                if (rows != 0b00000000) {
-                    lastInput = readInput();
-                    //send_Latest_Input(lastInput);
-                    input_change = true;
-                }
-            }
-            else if (lastInput == 'B'  && input_change && Action_Sel == 0) {
-                Action_Sel = 2; // Select Sensor Window
-                input_change = false;
-                send_Pattern_Name(8);
-                rows = P3IN; // constantly listen for an input
-                rows &= 0b11110000; // clear any values on lower 4 bits
-                if (rows != 0b00000000) {
-                    lastInput = readInput();
-                    //send_Latest_Input(lastInput);
-                    input_change = true;
-                }
-            }
-                
-            else if (lastInput == '2' && input_change && Action_Sel == 1) {
-                send_LED_Pattern(2);
-                send_Pattern_Name(2);
-                input_change = false;
-                Action_Sel = 0;
-                rows = P3IN; // constantly listen for an input
-                rows &= 0b11110000; // clear any values on lower 4 bits
-                if (rows != 0b00000000) {
-                    lastInput = readInput();
-                    //send_Latest_Input(lastInput);
-                    input_change = true;
-                }
-            }
-            else if (lastInput == '3'  && input_change && Action_Sel == 1) {
-                send_LED_Pattern(3);
-                send_Pattern_Name(3);
-                input_change = false;
-                Action_Sel = 0;
-                rows = P3IN; // constantly listen for an input
-                rows &= 0b11110000; // clear any values on lower 4 bits
-                if (rows != 0b00000000) {
-                    lastInput = readInput();
-                    //send_Latest_Input(lastInput);
-                    input_change = true;
-                }
-            }
-
-            else if (lastInput == '0'  && input_change && Action_Sel == 1) {
-                send_LED_Pattern(0);
+                is_matching = false;
                 send_Pattern_Name(0);
-                input_change = false;
-                Action_Sel = 0;
+                time_operating = 0;
+                send_LED_Pattern(1);
+                // code to set peltier to heat
+                P5OUT &= ~BIT2;
+                P5OUT |= BIT1;
                 rows = P3IN; // constantly listen for an input
                 rows &= 0b11110000; // clear any values on lower 4 bits
                 if (rows != 0b00000000) {
@@ -180,9 +133,15 @@ int main(void)
                     input_change = true;
                 }
             }
-            /*else if (lastInput == 'C'  && input_change) {
-                send_Blinking_toggle(2); // Turn cursor on/off
+            else if (lastInput == 'B'  && input_change) {
                 input_change = false;
+                is_matching = false;
+                send_Pattern_Name(1);
+                time_operating = 0;
+                send_LED_Pattern(2);
+                // code to set peltier to cool
+                P5OUT &= ~BIT1;
+                P5OUT |= BIT2;
                 rows = P3IN; // constantly listen for an input
                 rows &= 0b11110000; // clear any values on lower 4 bits
                 if (rows != 0b00000000) {
@@ -191,9 +150,13 @@ int main(void)
                     input_change = true;
                 }
             }
-            else if (lastInput == '9'  && input_change) {
-                send_Blinking_toggle(1); // start/stop LCD blinking
+            else if (lastInput == 'C'  && input_change) {
                 input_change = false;
+                send_Pattern_Name(3);
+                time_operating = 0;
+                send_LED_Pattern(0);
+                // code to set peltier to match
+                is_matching = true;
                 rows = P3IN; // constantly listen for an input
                 rows &= 0b11110000; // clear any values on lower 4 bits
                 if (rows != 0b00000000) {
@@ -201,8 +164,8 @@ int main(void)
                     //send_Latest_Input(lastInput);
                     input_change = true;
                 }
-            } */
-            else if (input_change && Action_Sel == 2 && lastInput != '*' && lastInput < ':') { 
+            }
+            else if (input_change && lastInput != '*' && lastInput < ':') { 
                 input_change = false;
                 next_window = lastInput;
                 // if valid input, record the number
@@ -214,10 +177,10 @@ int main(void)
                     input_change = true;
                 }
             }
-            else if (input_change && Action_Sel == 2 && lastInput == '*') {
+            else if (input_change & lastInput == '*') {
                 send_Latest_Input(next_window); // enter key pressed, process new window
                 input_change = false;
-                Action_Sel = 0; // sent new window
+                confirm_window = next_window;
                 // code to update to new window on ADC scanner
                 rows = P3IN; // constantly listen for an input
                 rows &= 0b11110000; // clear any values on lower 4 bits
@@ -240,20 +203,24 @@ int main(void)
             else if (record_next_temp) {
                 send_next_temp = true;
                 record_next_temp = false;
-                get_temp(next_window - '0');
+                get_temp(confirm_window - '0');
+                get_pelt_temp(confirm_window - '0');
                 // code to read temperature
                 // cur_temp variable gets set to read value
 
             }
             else if (send_next_temp) {
                 send_next_temp = false;
-                send_temp = ((cur_temp - 15) * 100) / 10; // say temp is 15.3455 degrees, it becomes 1534.55, then 153
+                send_temp = cur_temp/1; // say temp is 15.3455 degrees, it becomes 1534.55, then 153
                 // then, it is interpreted as 15.3 by LCD code
-                send_Temp_LCD(send_temp % 256); // will work for celcius, as 15-40.6 is an acceptable range. However,
-                // fahrenheit will likely require different subtraction/addition, as our desired range will likely be 55 - 80.6 or something. 
-                // if we want a larger window, we should code a second send function in controlLCD.C to initiate the decimal part of the number, instead of doing it this way. 
-                // so then first send would be this but divided by 10, and the second would be the decimal. The LCD controller would also have to interpet it this way, which is actually
-                // somewhat trivial.
+                A_send_Temp_LCD(send_temp%256); // will work for celcius, as 15-40.6 is an acceptable range. However,
+                send_temp_dec = ((cur_temp - (send_temp%256))*10)/1;
+                send_Temp_LCD_Dec(send_temp_dec); 
+
+                send_temp = pelt_temp/1;
+                send_temp_dec = ((pelt_temp - (send_temp%256))*10)/1;
+                P_send_Temp_LCD(send_temp%256);
+                send_Temp_LCD_Dec(send_temp_dec); 
             }
             else {
                 rows = P3IN; // constantly listen for an input
@@ -264,9 +231,22 @@ int main(void)
                     input_change = true;
                 }
             }
+            if (is_matching) {
+                if (((cur_temp*10)/1) > ((pelt_temp*10)/1)) {
+                    P5OUT &= ~BIT2;
+                    P5OUT |= BIT1;
+                }
+                else if (((cur_temp*10)/1) < ((pelt_temp*10)/1)) {
+                    P5OUT &= ~BIT1;
+                    P5OUT |= BIT2;
+                }
+            }
         }
         send_next_temp = false;
+        is_matching = false;
+        time_operating = 0;
         next_window = '3';
+        P5OUT &= ~(BIT1 | BIT2); // turn peltier off
         send_LED_Pattern(8); // turn off LED bar
         send_Blinking_toggle(0); // totally clear LCD
         send_LED_Timer_Pause(); // disable LCD-pattern-trigger timer interrupt here (system returns to locked state)
@@ -313,15 +293,36 @@ __interrupt void TIMERB1_ISR(void) {
 
 #pragma vector=EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
-    if (Data_Cnt == 0) {
-        Data_Cnt = 1;
-        UCB0TXBUF = dataSend[0];
-        UCB0IFG |= UCTXIFG0; 
+    if (!is_read) {
+        if (Data_Cnt == 0) {
+            Data_Cnt = 1;
+            UCB0TXBUF = dataSend[0];
+            UCB0IFG |= UCTXIFG0; 
+        }
+        else {
+            Data_Cnt = 0;
+            UCB0TXBUF = dataSend[1];
+            UCB0IFG &= ~UCTXIFG0; 
+        }
     }
     else {
-        Data_Cnt = 0;
-        UCB0TXBUF = dataSend[1];
-        UCB0IFG &= ~UCTXIFG0; 
+        switch(UCB0IV){
+            case 0x16:
+                if (Data_Cnt == 0) {
+                    Data_Cnt = 1;
+                    dataRead[1] = UCB0TXBUF;
+                    UCB0IFG |= UCTXIFG0; 
+                }
+                else {
+                    Data_Cnt = 0;
+                    dataRead[2] = UCB0TXBUF;
+                    UCB0IFG &= ~UCTXIFG0; 
+                }
+                break;
+            case 0x18: 
+                UCB0TXBUF = dataRead[0];
+                break;
+        }
     }
     // likely need to clear interrupt flag following this
 }
@@ -336,5 +337,14 @@ __interrupt void ADC_ISR(void){
 #pragma vector = TIMER2_B0_VECTOR               //time B0 ISR
 __interrupt void TIMERB2_ISR(void) {
     record_next_temp = true;                              //toggles P1.0 LED
+    if (update_time) {
+        time_operating += 1;
+        Send_Time_Operating(time_operating % 256);
+        update_time = false;
+    }
+    else {
+        update_time = true;
+    }
     TB2CCTL0 &= ~CCIFG;
 }
+// next is method to read peltier temp. Current controller should be generally correct, but something might be backwards. RTBS
