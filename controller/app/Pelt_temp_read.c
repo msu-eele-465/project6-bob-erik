@@ -10,6 +10,7 @@ float average[9];
 
 void get_pelt_temp(int window) { 
     Data_Cnt = 0;
+    is_read = true;
     __delay_cycles(2000);
     // data_cnt = 0;
     UCB0I2CSA = 0b01001000; // choose slave address
@@ -24,7 +25,7 @@ void get_pelt_temp(int window) {
     int tmp_msb = dataRead[1];
     int tmp_lsb = dataRead[2];
 
-    float temp_B = (tmp_msb & ~(0b10000111) * 2) + (tmp_msb & ~(0b11111000) * 2) + ((tmp_lsb & ~(0b01111111))/16) + ((tmp_lsb & ~(0b10000111))/128);
+    float temp_B = ((tmp_msb & ~(0b10000111)) * 2) + ((tmp_msb & ~(0b11111000)) * 2) + ((tmp_lsb & ~(0b01111111))/16) + ((tmp_lsb & ~(0b10000111))/128);
 
     /* voltage = (ADC_Value*3.3)/(4095); // gets voltage value from equation
     double in = 2196200 + ((1.8639-voltage)/.00000388); // from equation
@@ -51,5 +52,6 @@ void get_pelt_temp(int window) {
         total_1 = 0;
     }
     UCB0TBCNT = 0x02;
+    is_read = false;
     return;
 }
