@@ -171,6 +171,7 @@ void init_LCD_I2C() {
     UCB0CTLW0 &= ~UCSWRST;
 
     UCB0IE |= UCTXIE0; // enable IQR
+    UCB0IE |= UCRXIE0; // the other one
     return;
 
 }

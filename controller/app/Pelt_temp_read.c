@@ -5,8 +5,9 @@
 #include "shared.h"
 #include "pelt_temp_read.h"
 
-int ave_cnt_1 = 9; // same as above
-float average[9];
+int ave_cnt_1 = 8; // same as above
+volatile float average[9]= {0};
+volatile float total_1 = 0;
 
 void get_pelt_temp(int window) { 
     Data_Cnt = 0;
@@ -16,16 +17,17 @@ void get_pelt_temp(int window) {
     UCB0I2CSA = 0b01001000; // choose slave address
     UCB0CTLW0 &= ~UCTR; // data read
     dataRead[0] = 0b00000000;
-    UCB0TBCNT = 0x03;
+    UCB0TBCNT = 0x02;
    
     UCB0CTLW0 |= UCTXSTT; // generate start condition
-    while(UCB0IFG & UCSTPIFG == 0) {}
+    while((UCB0IFG & UCSTPIFG) == 0) {}
+    __delay_cycles(5000);
     UCB0IFG &= ~UCSTPIFG; 
 
     int tmp_msb = dataRead[1];
     int tmp_lsb = dataRead[2];
 
-    float temp_B = ((tmp_msb & ~(0b10000111)) * 2) + ((tmp_msb & ~(0b11111000)) * 2) + ((tmp_lsb & ~(0b01111111))/16) + ((tmp_lsb & ~(0b10000111))/128);
+    float temp_B = ((tmp_msb & ~(0b10000111)) * 0x02) + ((tmp_msb & ~(0b11111000)) * 0x02) + ((tmp_lsb & ~(0b01111111))/0x0F) + ((tmp_lsb & ~(0b10000111))/0x80);
 
     /* voltage = (ADC_Value*3.3)/(4095); // gets voltage value from equation
     double in = 2196200 + ((1.8639-voltage)/.00000388); // from equation
@@ -34,7 +36,6 @@ void get_pelt_temp(int window) {
 
    // temp b is what the peltier gives i think
     int i;
-    float total_1 = 0;
     if(ave_cnt_1 != 0){ // populates array when its empty
         ave_cnt_1--;
         average[ave_cnt_1] = temp_B;
@@ -46,12 +47,13 @@ void get_pelt_temp(int window) {
         average[0] = temp_B;
 
         for(i=0; i<window; i++){ // window size n for average temp of n
-            total_1 = total_1 + average[i];
+            total_1 = (total_1 + average[i]);
         }
         pelt_temp = (total_1/window); // convert to celcius average
         total_1 = 0;
     }
     UCB0TBCNT = 0x02;
     is_read = false;
+    UCB0CTLW0 |= UCTR;
     return;
 }

@@ -20,7 +20,7 @@ volatile unsigned int red_counter = 0;
 volatile unsigned int green_counter = 0;
 volatile unsigned int blue_counter = 0;
 
-volatile int pelt_temp = 0; // whether this actually ever becomes a float remains to be seen. My gut tells me no, though.
+volatile float pelt_temp = 0; // whether this actually ever becomes a float remains to be seen. My gut tells me no, though.
 volatile float cur_temp = 0;  // this is what you update to the degrees celcius
 volatile unsigned int send_temp = 0;
 volatile unsigned int send_temp_dec = 0;
@@ -175,7 +175,7 @@ int main(void)
                 rows &= 0b11110000; // clear any values on lower 4 bits
                 if (rows != 0b00000000) {
                     lastInput = readInput();
-                    //send_Latest_Input(lastInput);
+                    send_Latest_Input(lastInput);
                     input_change = true;
                 }
             }
@@ -206,7 +206,8 @@ int main(void)
                 send_next_temp = true;
                 record_next_temp = false;
                 get_temp(confirm_window - '0');
-                get_pelt_temp(confirm_window - '0');
+                //get_pelt_temp(confirm_window - '0');
+                pelt_temp = 20.2;
                 // code to read temperature
                 // cur_temp variable gets set to read value
 
@@ -309,26 +310,27 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
         }
     }
     else {
-        switch(UCB0IV){
-            case 0x16:
-                if (Data_Cnt == 0) {
+        switch (UCB0IV) {
+        case 0x16: // Byte received (UCRXIFG0 set)
+               if (Data_Cnt == 0) {
                     Data_Cnt = 1;
-                    dataRead[1] = UCB0TXBUF;
-                    UCB0IFG |= UCTXIFG0; 
-                }
+                    dataRead[1] = UCB0RXBUF; // Read received data
+                } 
                 else {
                     Data_Cnt = 0;
-                    dataRead[2] = UCB0TXBUF;
-                    UCB0IFG &= ~UCTXIFG0; 
+                    dataRead[2] = UCB0RXBUF;
                 }
+                UCB0IFG &= ~UCRXIFG0; // Clear flag AFTER reading
                 break;
-            case 0x18: 
-                UCB0TXBUF = dataRead[0];
-                break;
-        }
+            break;
+
+        case 0x18: // TX buffer ready
+            UCB0TXBUF = dataRead[0]; 
+            break;
     }
-    // likely need to clear interrupt flag following this
 }
+}
+    // likely need to clear interrupt flag following this
 
 #pragma vector=ADC_VECTOR
 __interrupt void ADC_ISR(void){

@@ -19,7 +19,7 @@ extern volatile char next_window;
 extern volatile char confirm_window;
 extern volatile bool record_next_temp;
 extern volatile float cur_temp; // this is what you update to thedegrees celcius
-extern volatile int pelt_temp;
+extern volatile float pelt_temp;
 extern volatile unsigned int send_temp;
 extern volatile unsigned int send_temp_dec;
 
